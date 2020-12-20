@@ -1,0 +1,116 @@
+=== Spring
+
+* Spring Data JDBC
+* Spring Data Redis
+
+* Spring state machine
+* Open Feign For Soap
+* Ribbon Integration
+* Slueth
+* OpenApi documentation (https://www.baeldung.com/spring-boot-swagger-jwt)
+
+
+
+
+
+=== Monitoring and Auditing System
+
+
+====  Requirement
+
+. Redis
+. Mysql
+. Kafka
+
+
+==== Technologies
+. Spring Data Redis
+. Spring Kafka Stream
+. Spring Data JDBC
+
+
+
+==== Monitoring System Model
+[source,kotlin]
+----
+
+import java.time.LocalDateTime
+
+sealed class SystemStatus
+
+class Up: SystemStatus
+class Down: SystemStatus
+class Amber: SystemStatus
+
+data class ExternalSystem(
+     val appName:String,
+     val serverDetails:Map<String,ServerDetails>
+)
+
+data class ServerDetails(
+    val serverId: String,
+    val incomingRequest: Long,
+    val successCount: Long,
+    val failureCount: Long,
+    val systemStatus: SystemStatus,
+    val lastUpdate: LocalDateTime
+)
+----
+
+==== Auditing Model
+[source,kotlin]
+----
+sealed class TransactionStatus
+class Success: TransactionStatus
+class Failed: TransactionStatus
+class Queued: TransactionStatus
+class InProgress: TransactionStatus
+
+
+data class TransactionAudit(
+        val transKey: String,
+        val status: TransactionStatus,
+        val scheduledRetry: Boolean,
+        val failedInSystem: String,
+        val lastUpdate: LocalDateTime
+)
+----
+
+
+==== Transaction History Model
+[source,kotlin]
+----
+
+ import java.math.BigDecimalimport java.time.LocalDateTime
+
+sealed class State
+
+sealed class Event
+
+sealed class TransState
+
+data class TransactionHistory(
+        val transKey: String,
+        val state: State,
+        val event: Event,
+        val status: TransState,
+        val transReq: Transaction,
+        val receivedTime: LocalDateTime,
+        val processedService: String
+)
+
+data class Transaction(
+    val transId: Long,
+    val transKey: String,
+    val transName: String,
+    val date: LocalDateTime,
+    val fromAccount: Account,
+    val toAccount: Account,
+    val amount: BigDecimal
+)
+
+data class Account(
+    val customerId:String,
+    val bankId: String
+)
+----
