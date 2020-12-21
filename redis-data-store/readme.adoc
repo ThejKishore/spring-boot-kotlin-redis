@@ -9,8 +9,220 @@
 * Slueth
 * OpenApi documentation (https://www.baeldung.com/spring-boot-swagger-jwt)
 
+* Java Configuration for database connection using Spring data jdbc -- TODO
+
+[source,java]
+----
+@Configuration
+@EnableJdbcRepositories
+class ApplicationConfig extends AbstractJdbcConfiguration {
+
+    @Bean
+    public DataSource dataSource() {
+        EmbeddedDatabaseBuilder builder = new EmbeddedDatabaseBuilder();
+        return builder.setType(EmbeddedDatabaseType.H2).build();
+    }
+
+    @Bean
+    NamedParameterJdbcOperations namedParameterJdbcOperations(DataSource dataSource) {
+        return new NamedParameterJdbcTemplate(dataSource);
+    }
+
+    @Bean
+    TransactionManager transactionManager(DataSource dataSource) {
+        return new DataSourceTransactionManager(dataSource);
+    }
+
+    @Override
+	public JdbcCustomConversions jdbcCustomConversions() {
+
+		return new JdbcCustomConversions(asList(new Converter<Clob, String>() {
+
+			@Nullable
+			@Override
+			public String convert(Clob clob) {
+				try {
+					return Math.toIntExact(clob.length()) == 0 //
+							? "" //
+							: clob.getSubString(1, Math.toIntExact(clob.length()));
+
+				} catch (SQLException e) {
+					throw new IllegalStateException("Failed to convert CLOB to String.", e);
+				}
+			}
+		}));
+	}
+
+	@Bean
+	public NamedParameterJdbcTemplate namedParameterJdbcTemplate(JdbcOperations operations) {
+		return new NamedParameterJdbcTemplate(operations);
+	}
+
+	@Bean
+	public DataSourceInitializer initializer(DataSource dataSource) {
+
+		DataSourceInitializer initializer = new DataSourceInitializer();
+		initializer.setDataSource(dataSource);
+
+		ClassPathResource script = new ClassPathResource("schema.sql");
+		ResourceDatabasePopulator populator = new ResourceDatabasePopulator(script);
+		initializer.setDatabasePopulator(populator);
+
+		return initializer;
+	}
+}
+
+JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);  // reusable object
+ LobHandler lobHandler = new DefaultLobHandler();  // reusable object
+
+jdbcTemplate.update(
+ "INSERT INTO imagedb (image_name, content, description) VALUES (?, ?, ?)",
+ new Object[] {
+   name,
+   new SqlLobValue(contentStream, contentLength, lobHandler),
+   new SqlLobValue(description, lobHandler)
+ },
+ new int[] {Types.VARCHAR, Types.BLOB, Types.CLOB});
 
 
+ public long save(Report report) {
+        String sql = "insert into REPORT (NAME, CONTENT, IMAGE) values (?, ?, ?)";
+        KeyHolder holder = new GeneratedKeyHolder();
+        jdbcTemplate.update(new PreparedStatementCreator() {
+            @Override
+            public PreparedStatement createPreparedStatement(Connection connection)
+                    throws SQLException {
+                PreparedStatement ps = connection.prepareStatement(sql.toString(),
+                        Statement.RETURN_GENERATED_KEYS);
+                ps.setString(1, report.getName());
+                Reader reader = new StringReader(report.getContent());
+                ps.setClob(2, reader);
+                ByteArrayInputStream inputStream = new ByteArrayInputStream(report.getImage());
+                ps.setBlob(3, inputStream);
+                return ps;
+            }
+        }, holder);
+        Number key = holder.getKey();
+        if (key != null) {
+            return key.longValue();
+        }
+        throw new RuntimeException("No generated primary key returned.");
+    }
+----
+
+* Java Configuration for redis connection -- TODO
+. https://github.com/spring-projects/spring-data-examples/tree/master/redis/repositories
+
+[source,java]
+----
+@Configuration
+@EnableRedisRepositories
+class AppConfig {
+
+  @Bean
+  RedisConnectionFactory connectionFactory() {
+    return new LettuceConnectionFactory();
+  }
+
+  @Bean
+  RedisTemplate<?, ?> redisTemplate(RedisConnectionFactory connectionFactory) {
+
+    RedisTemplate<byte[], byte[]> template = new RedisTemplate<>();
+    template.setConnectionFactory(connectionFactory);
+
+    return template;
+  }
+}
+----
+
+* Java Configuration for Kafka Connection -- TODO
+. https://grokonez.com/category/spring-framework/spring-kafka
+. https://reflectoring.io/spring-boot-kafka/
+
+[source,java]
+----
+@Configuration
+public class KafkaTopicConfig {
+
+    @Value(value = "${kafka.bootstrapAddress}")
+    private String bootstrapAddress;
+
+    @Bean
+    public KafkaAdmin kafkaAdmin() {
+        Map<String, Object> configs = new HashMap<>();
+        configs.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapAddress);
+        return new KafkaAdmin(configs);
+    }
+
+    @Bean
+    public NewTopic topic1() {
+         return new NewTopic("baeldung", 1, (short) 1);
+    }
+}
+
+@Configuration
+public class KafkaProducerConfig {
+
+    @Bean
+    public ProducerFactory<String, String> producerFactory() {
+        Map<String, Object> configProps = new HashMap<>();
+        configProps.put(
+          ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,
+          bootstrapAddress);
+        configProps.put(
+          ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
+          StringSerializer.class);
+        configProps.put(
+          ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
+          StringSerializer.class);
+        return new DefaultKafkaProducerFactory<>(configProps);
+    }
+
+    @Bean
+    public KafkaTemplate<String, String> kafkaTemplate() {
+        return new KafkaTemplate<>(producerFactory());
+    }
+}
+
+@EnableKafka
+@Configuration
+public class KafkaConsumerConfig {
+
+    @Bean
+    public ConsumerFactory<String, String> consumerFactory() {
+        Map<String, Object> props = new HashMap<>();
+        props.put(
+          ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
+          bootstrapAddress);
+        props.put(
+          ConsumerConfig.GROUP_ID_CONFIG,
+          groupId);
+        props.put(
+          ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
+          StringDeserializer.class);
+        props.put(
+          ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
+          StringDeserializer.class);
+        return new DefaultKafkaConsumerFactory<>(props);
+    }
+
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, String>
+      kafkaListenerContainerFactory() {
+
+        ConcurrentKafkaListenerContainerFactory<String, String> factory =
+          new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(consumerFactory());
+        return factory;
+    }
+}
+----
+
+* Java Configuration for Spring data jpa Connection -- TODO
+. https://github.com/spring-projects/spring-data-examples/tree/master/jpa/multiple-datasources/src/main/java/example/springdata/jpa/multipleds
+
+* Upload file
+. https://grokonez.com/spring-framework/spring-boot/springboot-upload-multiple-files-to-mysql-example-thymeleaf-spring-jpa-audit
 
 
 === Monitoring and Auditing System
@@ -81,7 +293,8 @@ data class TransactionAudit(
 [source,kotlin]
 ----
 
- import java.math.BigDecimalimport java.time.LocalDateTime
+import java.math.BigDecimal
+import java.time.LocalDateTime
 
 sealed class State
 
