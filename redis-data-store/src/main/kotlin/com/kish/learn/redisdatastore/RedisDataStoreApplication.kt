@@ -6,10 +6,12 @@ import org.springframework.boot.CommandLineRunner
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 import org.springframework.context.annotation.Bean
+import org.springframework.data.redis.repository.configuration.EnableRedisRepositories
 import org.springframework.kafka.annotation.EnableKafka
 
 @SpringBootApplication
 @EnableKafka
+@EnableRedisRepositories
 class RedisDataStoreApplication{
 
 	@Bean

@@ -4,7 +4,6 @@ services:
   zookeeper:
     image: confluentinc/cp-zookeeper:5.5.0
     hostname: zookeeper
-    container_name: zookeeper
     ports:
       - "2181:2181"
     environment:
@@ -16,7 +15,6 @@ services:
   broker:
     image: confluentinc/cp-server:5.5.0
     hostname: broker
-    container_name: broker
     depends_on:
       - zookeeper
     ports:
@@ -51,7 +49,7 @@ services:
     ports:
       - 3306:3306
     volumes:
-      - db_data:/var/lib/mysql
+      - ./db_data:/var/lib/mysql
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: root
