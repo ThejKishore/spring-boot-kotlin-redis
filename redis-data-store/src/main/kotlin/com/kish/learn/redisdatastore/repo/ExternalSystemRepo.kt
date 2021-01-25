@@ -1,11 +1,9 @@
 package com.kish.learn.redisdatastore.repo
 
-import com.kish.learn.redisdatastore.model.Movie
+import com.kish.learn.redisdatastore.model.ExternalSystems
 import org.springframework.data.repository.CrudRepository
 import org.springframework.stereotype.Repository
 
 @Repository
-interface MovieRepo : CrudRepository<Movie,String> {
-    fun findMoviesByName(name:String):Collection<Movie>
-
+interface ExternalSystemRepo : CrudRepository<ExternalSystems,String> {
 }

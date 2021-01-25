@@ -1,11 +1,11 @@
 import React from 'react';
-import logo from './logo.svg';
 import './App.css';
+import FixedColumnTable from "./components/FixedColumnTable";
 
 function App() {
   return (
     <div className="App">
-      My First App
+      <FixedColumnTable />
     </div>
   );
 }
